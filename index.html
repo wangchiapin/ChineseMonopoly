@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>華語大富翁</title>
+<meta property="og:title" content="華語大富翁 · Monopoly de chino">
+<meta property="og:description" content="課堂互動遊戲：擲骰子、走格子、說出圖片的中文 · Juego de clase">
+<meta property="og:type" content="website">
+<style>
+:root{
+  --felt:#14533a; --board:#cde6d0; --cream:#f6f3e8; --ink:#111; --red:#e1262c; --green:#1fa45a; --blue:#1b6fd8;
+  --font:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--felt);color:var(--ink);font-family:var(--font)}
+body{min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+.banner{display:inline-block;background:var(--red);color:#fff;font-weight:900;letter-spacing:.08em;border:4px solid var(--ink);
+  padding:.18em .7em;transform:rotate(-3deg);text-shadow:2px 2px 0 var(--ink);box-shadow:0 5px 0 rgba(0,0,0,.35);font-size:clamp(20px,3vw,40px);white-space:nowrap}
+
+/* ===== 設定畫面 ===== */
+.setup{max-width:760px;margin:0 auto;padding:22px 14px 30px;text-align:center}
+.setup .sub{color:#d9eadd;margin:14px 0 18px;font-size:15px}
+.setup .card{background:var(--cream);border:3px solid var(--ink);border-radius:8px;padding:12px 14px;margin:0 0 12px;text-align:left;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.setup h3{margin:0 0 8px;font-size:16px;border-bottom:2px solid var(--ink);padding-bottom:4px}
+.prow{display:flex;align-items:center;gap:8px;margin:6px 0}
+.prow input{flex:1;font-size:17px;padding:7px 9px;border:2px solid var(--ink);border-radius:5px;background:#fff;min-width:0}
+.prow svg{width:24px;height:32px;flex:none}
+.x{border:2px solid var(--ink);background:#fff;border-radius:5px;width:34px;height:34px;font-size:15px}
+.ghost{border:2px dashed var(--ink);background:transparent;border-radius:6px;padding:7px 12px;font-size:15px;margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{border:2px solid var(--ink);background:#fff;border-radius:6px;padding:6px 12px;font-size:16px;font-weight:700}
+.chip.on{background:var(--ink);color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:7px 0;font-size:15px}
+.row label{display:flex;align-items:center;gap:6px}
+.num{width:84px;font-size:16px;padding:6px 8px;border:2px solid var(--ink);border-radius:5px;background:#fff}
+.bigbtn{border:4px solid var(--ink);border-radius:10px;background:var(--red);color:#fff;font-weight:900;font-size:22px;padding:12px 28px;box-shadow:0 6px 0 var(--ink);text-shadow:1px 1px 0 var(--ink)}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 3px 0 var(--ink)}
+.bigbtn:disabled{opacity:.45;box-shadow:0 3px 0 var(--ink);transform:translateY(3px);cursor:default}
+.topbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:6px}
+.sq{border:3px solid var(--ink);background:var(--cream);border-radius:8px;font-size:20px;width:44px;height:44px;box-shadow:0 3px 0 var(--ink)}
+
+/* ===== 遊戲畫面 ===== */
+.game{display:flex;gap:14px;padding:10px;align-items:flex-start;justify-content:center}
+.boardWrap{flex:1 1 0;min-width:0;display:flex;justify-content:center}
+.board{display:grid;background:var(--board);border:4px solid var(--ink);box-shadow:0 6px 0 rgba(0,0,0,.4);width:100%}
+.tile{position:relative;background:var(--cream);border:1.5px solid var(--ink);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.tile .band{flex:none;height:22%;min-height:14px;border-bottom:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:clamp(9px,1.1vw,15px)}
+.tile .pic{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:3%}
+.tile .pic img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.tile .fb{font-weight:800;font-size:clamp(10px,1.2vw,16px);text-align:center;line-height:1.2;color:#555}
+.tile .pawns{position:absolute;left:0;right:0;bottom:1px;display:flex;justify-content:center;gap:0;pointer-events:none}
+.tile .pawns svg{width:clamp(12px,1.9vw,26px);height:auto;margin:0 -2px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+.tile.go{background:#fff;align-items:center;justify-content:center;text-align:center;font-weight:900;color:var(--red)}
+.tile.go .gt{font-size:clamp(12px,1.9vw,26px);line-height:1.1}
+.tile.go .ga{font-size:clamp(16px,2.6vw,36px);line-height:1}
+.tile.cur{outline:4px solid #ffd400;outline-offset:-4px;z-index:2;box-shadow:0 0 0 3px var(--ink)}
+.tile.hop{animation:hop .25s}
+@keyframes hop{50%{transform:translateY(-6px) scale(1.04)}}
+.center{grid-row:2 / var(--rEnd);grid-column:2 / var(--cEnd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:0;padding:6px}
+.center .banner{font-size:clamp(16px,3.2vw,46px)}
+.center .info{font-weight:700;font-size:clamp(11px,1.3vw,18px);color:#2c5a3a;text-align:center}
+.panel{flex:none;width:390px;max-height:calc(100vh - 20px);overflow:auto;background:var(--cream);border:4px solid var(--ink);border-radius:8px;padding:10px;box-shadow:0 6px 0 rgba(0,0,0,.4)}
+.turn{display:flex;align-items:center;gap:8px;margin:2px 0 8px}
+.turn svg{width:26px;height:34px;flex:none}
+.turnName{font-size:21px;font-weight:900;line-height:1.15;word-break:break-word}
+.diceRow{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
+.dice{width:78px;height:78px;flex:none;background:#fff;border:4px solid var(--ink);border-radius:14px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:9px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.dice i{display:block;border-radius:50%;margin:auto;width:78%;height:78%}
+.dice i.on{background:var(--ink)}
+.dice.roll{animation:shake .16s infinite}
+@keyframes shake{25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.hint{font-size:14px;font-weight:700;color:#555}
+.deed{border:3px solid var(--ink);background:#fff;margin:4px 0 10px}
+.deed .dband{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;border-bottom:3px solid var(--ink);font-weight:900;font-size:15px}
+.deed .dpic{height:min(26vh,220px);min-height:120px;display:flex;align-items:center;justify-content:center;padding:6px}
+.deed.compact .dpic{height:min(15vh,130px);min-height:90px}
+.deed .dpic img{max-width:100%;max-height:100%;object-fit:contain}
+.deed .dpic .fb{font-size:30px;font-weight:900;color:#444;text-align:center}
+.deed .say{text-align:center;font-weight:800;padding:6px 8px 9px;font-size:16px}
+.deed .ans{text-align:center;padding:4px 8px 10px;border-top:2px dashed var(--ink)}
+.deed .hz{font-size:44px;font-weight:900;line-height:1.15}
+.deed .ph{font-size:20px;color:#333;margin-top:2px}
+.deed .gobig{text-align:center;padding:18px 8px;font-weight:900;color:var(--red);font-size:26px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.btn{flex:1 1 auto;border:3px solid var(--ink);border-radius:8px;background:#fff;font-weight:800;font-size:17px;padding:10px 10px;box-shadow:0 4px 0 var(--ink);min-width:0}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
+.btn.ok{background:var(--green);color:#fff;text-shadow:1px 1px 0 var(--ink)}
+.btn.no{background:var(--red);color:#fff;text-shadow:1px 1px 0 var(--ink)}
+.btn.sm{font-size:14px;padding:7px 8px;box-shadow:0 3px 0 var(--ink)}
+.rtitle{font-weight:900;font-size:17px;margin:6px 0}
+.bill{flex:1 1 auto;border:3px solid var(--ink);border-radius:6px;font-weight:900;font-size:22px;padding:12px 10px;box-shadow:0 4px 0 var(--ink);background:linear-gradient(135deg,var(--b1),var(--b2))}
+.bill:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}
+.b1{--b1:#fff6a8;--b2:#f3e46b}.b2{--b1:#bfe8b0;--b2:#8fd17a}.b3{--b1:#b5d6f5;--b2:#7fb3e6}.b4{--b1:#f1e3c4;--b2:#dcc698}.b5{--b1:#ffd0a0;--b2:#f7a24f}
+.custom{display:flex;gap:8px;margin:8px 0}
+.custom input{flex:1;font-size:18px;padding:8px;border:3px solid var(--ink);border-radius:6px;min-width:0}
+.score{margin-top:10px;border-top:3px solid var(--ink);padding-top:8px}
+.srow{display:flex;align-items:center;gap:8px;padding:5px 6px;border:2px solid transparent;border-radius:6px;font-weight:800}
+.srow.me{border-color:var(--ink);background:#fff3b0}
+.srow svg{width:16px;height:22px;flex:none}
+.srow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .cn{font-variant-numeric:tabular-nums}
+.srow .lp{font-size:13px;color:#555;font-weight:700}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:12px}
+.modal{background:var(--cream);border:4px solid var(--ink);border-radius:10px;padding:14px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 8px 0 rgba(0,0,0,.4)}
+.modal h3{margin:0 0 10px;font-size:20px}
+.modal table{width:100%;border-collapse:collapse}
+.modal th{font-size:13px;text-align:left;padding:2px 4px}
+.modal td{padding:3px 4px}
+.modal td input{width:100%;font-size:16px;padding:6px;border:2px solid var(--ink);border-radius:5px;min-width:0}
+.rank{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;padding:6px 4px;border-bottom:2px dashed #999}
+.rank svg{width:22px;height:30px}
+.winner{font-size:26px;font-weight:900;text-align:center;margin:4px 0 10px;color:var(--red)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:999px;padding:10px 20px;font-weight:800;font-size:18px;z-index:1200;max-width:92vw;text-align:center}
+@media (max-width:960px){
+  .game{flex-direction:column;align-items:stretch}
+  .panel{width:100%;max-height:none}
+  .boardWrap{flex:none;width:100%}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ===== 找不到中文聲音的提示（每天一分鐘遊戲統一做法）===== */
+(function(){
+  var shown=false;
+  function cfg(){ var s={}; try{ s=JSON.parse(localStorage.getItem('hanziGames.settings')||'{}')||{}; }catch(e){} return s; }
+  function isMandarin(v){ var l=String((v&&v.lang)||'').toLowerCase().replace(/_/g,'-'); if(l.indexOf('yue')===0||l.indexOf('zh-hk')===0) return false; return l==='zh'||l.indexOf('zh-')===0||l.indexOf('cmn')===0; }
+  var T={
+    none:{ zh:['這個裝置找不到中文（台灣）語音，聽不到念的內容。請到手機設定安裝「中文（台灣）」語音，或換一個裝置。','这个装置找不到中文（台湾）语音，听不到念的内容。请到手机设置安装「中文（台湾）」语音，或换一个装置。'],
+           es:'No se encontró una voz de chino (Taiwán) en este dispositivo, así que no se oirá el audio. Instala la voz «chino (Taiwán)» en los ajustes del móvil o usa otro dispositivo.',
+           en:'No Chinese (Taiwan) voice was found on this device, so you won’t hear the audio. Install the “Chinese (Taiwan)” voice in your phone settings, or use another device.' },
+    nosynth:{ zh:['這個瀏覽器不支援語音，聽不到念的內容。請換一個瀏覽器（例如 Chrome、Safari）。','这个浏览器不支持语音，听不到念的内容。请换一个浏览器（例如 Chrome、Safari）。'],
+           es:'Este navegador no admite voz, así que no se oirá el audio. Usa otro navegador (por ejemplo Chrome o Safari).',
+           en:'This browser does not support speech, so you won’t hear the audio. Try another browser (for example Chrome or Safari).' }
+  };
+  function show(kind){
+    if(shown||document.getElementById('hgVoiceHint')) return; shown=true;
+    var s=cfg(), lang=s.lang||'es', simp=s.script==='simp', t=T[kind];
+    var st=document.createElement('style');
+    st.textContent='#hgVoiceHint{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:2147482999;width:min(94vw,520px);box-sizing:border-box;display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:#fff6dc;border:1px solid #d8b24a;color:#5b4410;font:13px/1.4 system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25)}#hgVoiceHint .m{flex:1}#hgVoiceHint .m small{display:block;font-size:11px;opacity:.85;margin-top:2px}#hgVoiceHint button{border:0;background:transparent;color:inherit;font-size:16px;line-height:1;padding:0 2px;cursor:pointer}';
+    document.head.appendChild(st);
+    var d=document.createElement('div'); d.id='hgVoiceHint'; d.setAttribute('role','status');
+    var m=document.createElement('div'); m.className='m';
+    var zh=document.createElement('div'); zh.textContent = simp ? t.zh[1] : t.zh[0]; m.appendChild(zh);
+    if(lang!=='zh'){ var sm=document.createElement('small'); sm.textContent = lang==='en' ? t.en : t.es; m.appendChild(sm); }
+    var x=document.createElement('button'); x.type='button'; x.textContent='✕'; x.setAttribute('aria-label','Close');
+    x.addEventListener('click',function(){ d.remove(); });
+    d.appendChild(m); d.appendChild(x); document.body.appendChild(d);
+  }
+  function check(){
+    try{
+      if(!window.speechSynthesis){ show('nosynth'); return; }
+      var vs=window.speechSynthesis.getVoices()||[];
+      if(vs.length && !vs.some(isMandarin)) show('none');   // 清單是空的時（有些手機一開始就是空的）先不判斷
+    }catch(e){}
+  }
+  function start(){
+    check();
+    try{ window.speechSynthesis.addEventListener('voiceschanged', check); }catch(e){}
+    setTimeout(check,1500); setTimeout(check,4000);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+/* ===== /找不到中文聲音的提示 ===== */
+
+</script>
+<script>
+(function(){
+'use strict';
+  /* ============ 共用設定（和小狗找寶藏同一份 hanziGames.settings） ============ */
+  const SETTINGS_KEY = 'hanziGames.settings';
+  const SET_OPTS = { script:['trad','simp'], lang:['es','en','zh'], phon:['pinyin','zhuyin','both','off'], rate:['slow','normal','fast'] };
+  const RATE_VALUE = { slow:0.45, normal:0.65, fast:0.85 };
+  function writeSettings(o){
+    try{
+      let cur = {};
+      try{ cur = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; }catch(e){}
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign(cur, { v:1, script:o.script, lang:o.lang, phon:o.phon, rate:o.rate })));
+    }catch(e){}
+  }
+  function readSettings(){
+    const out = { v:1, script:'trad', lang:'es', phon:'pinyin', rate:'normal' };
+    let saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); }catch(e){}
+    if (saved && typeof saved === 'object'){
+      Object.keys(SET_OPTS).forEach(k => { if (SET_OPTS[k].includes(saved[k])) out[k] = saved[k]; });
+    } else writeSettings(out);
+    return out;
+  }
+  const Settings = readSettings();
+
+
+/* ============ 物品資料（來自收納小達人，讀音已對照 GoodTeacher） ============ */
+const POOL = [
+{id:1,  zh:"長尾夾",   zhs:"长尾夹",   py:"cháng wěi jiá",       zy:"ㄔㄤˊ ㄨㄟˇ ㄐㄧㄚˊ"},
+{id:2,  zh:"盆栽",     zhs:"盆栽",     py:"pén zāi",             zy:"ㄆㄣˊ ㄗㄞ"},
+{id:3,  zh:"衣架",     zhs:"衣架",     py:"yī jià",              zy:"ㄧ ㄐㄧㄚˋ"},
+{id:4,  zh:"布鞋",     zhs:"布鞋",     py:"bù xié",              zy:"ㄅㄨˋ ㄒㄧㄝˊ"},
+{id:5,  zh:"高跟鞋",   zhs:"高跟鞋",   py:"gāo gēn xié",         zy:"ㄍㄠ ㄍㄣ ㄒㄧㄝˊ"},
+{id:6,  zh:"拖鞋",     zhs:"拖鞋",     py:"tuō xié",             zy:"ㄊㄨㄛ ㄒㄧㄝˊ"},
+{id:7,  zh:"掃把",     zhs:"扫把",     py:"sào bǎ",              zy:"ㄙㄠˋ ㄅㄚˇ"},
+{id:8,  zh:"電腦",     zhs:"电脑",     py:"diàn nǎo",            zy:"ㄉㄧㄢˋ ㄋㄠˇ"},
+{id:9,  zh:"相機",     zhs:"相机",     py:"xiàng jī",            zy:"ㄒㄧㄤˋ ㄐㄧ"},
+{id:10, zh:"手電筒",   zhs:"手电筒",   py:"shǒu diàn tǒng",      zy:"ㄕㄡˇ ㄉㄧㄢˋ ㄊㄨㄥˇ"},
+{id:11, zh:"錢包",     zhs:"钱包",     py:"qián bāo",            zy:"ㄑㄧㄢˊ ㄅㄠ"},
+{id:12, zh:"行動電源", zhs:"行动电源", py:"xíng dòng diàn yuán", zy:"ㄒㄧㄥˊ ㄉㄨㄥˋ ㄉㄧㄢˋ ㄩㄢˊ"},
+{id:13, zh:"衣服",     zhs:"衣服",     py:"yī fú",               zy:"ㄧ ㄈㄨˊ"},
+{id:14, zh:"褲子",     zhs:"裤子",     py:"kù zi",               zy:"ㄎㄨˋ ˙ㄗ"},
+{id:15, zh:"手錶",     zhs:"手表",     py:"shǒu biǎo",           zy:"ㄕㄡˇ ㄅㄧㄠˇ"},
+{id:16, zh:"耳環",     zhs:"耳环",     py:"ěr huán",             zy:"ㄦˇ ㄏㄨㄢˊ"},
+{id:17, zh:"筆記本",   zhs:"笔记本",   py:"bǐ jì běn",           zy:"ㄅㄧˇ ㄐㄧˋ ㄅㄣˇ"},
+{id:18, zh:"蠟燭",     zhs:"蜡烛",     py:"là zhú",              zy:"ㄌㄚˋ ㄓㄨˊ"},
+{id:19, zh:"雨傘",     zhs:"雨伞",     py:"yǔ sǎn",              zy:"ㄩˇ ㄙㄢˇ"},
+{id:20, zh:"背包",     zhs:"背包",     py:"bēi bāo",             zy:"ㄅㄟ ㄅㄠ"},
+{id:21, zh:"遙控器",   zhs:"遥控器",   py:"yáo kòng qì",         zy:"ㄧㄠˊ ㄎㄨㄥˋ ㄑㄧˋ"},
+{id:22, zh:"杯子",     zhs:"杯子",     py:"bēi zi",              zy:"ㄅㄟ ˙ㄗ"},
+{id:23, zh:"牙刷",     zhs:"牙刷",     py:"yá shuā",             zy:"ㄧㄚˊ ㄕㄨㄚ"},
+{id:24, zh:"牙膏",     zhs:"牙膏",     py:"yá gāo",              zy:"ㄧㄚˊ ㄍㄠ"},
+{id:25, zh:"筷子",     zhs:"筷子",     py:"kuài zi",             zy:"ㄎㄨㄞˋ ˙ㄗ"},
+{id:26, zh:"刀子",     zhs:"刀子",     py:"dāo zi",              zy:"ㄉㄠ ˙ㄗ"},
+{id:27, zh:"毛巾",     zhs:"毛巾",     py:"máo jīn",             zy:"ㄇㄠˊ ㄐㄧㄣ"},
+{id:28, zh:"梳子",     zhs:"梳子",     py:"shū zi",              zy:"ㄕㄨ ˙ㄗ"},
+{id:29, zh:"盤子",     zhs:"盘子",     py:"pán zi",              zy:"ㄆㄢˊ ˙ㄗ"},
+{id:30, zh:"吹風機",   zhs:"吹风机",   py:"chuī fēng jī",        zy:"ㄔㄨㄟ ㄈㄥ ㄐㄧ"},
+{id:31, zh:"塑膠瓶",   zhs:"塑胶瓶",   py:"sù jiāo píng",        zy:"ㄙㄨˋ ㄐㄧㄠ ㄆㄧㄥˊ"},
+{id:32, zh:"叉子",     zhs:"叉子",     py:"chā zi",              zy:"ㄔㄚ ˙ㄗ"},
+{id:33, zh:"水瓶",     zhs:"水瓶",     py:"shuǐ píng",           zy:"ㄕㄨㄟˇ ㄆㄧㄥˊ"},
+{id:34, zh:"桶子",     zhs:"桶子",     py:"tǒng zi",             zy:"ㄊㄨㄥˇ ˙ㄗ"},
+{id:35, zh:"鍋子",     zhs:"锅子",     py:"guō zi",              zy:"ㄍㄨㄛ ˙ㄗ"},
+{id:36, zh:"湯匙",     zhs:"汤匙",     py:"tāng chí",            zy:"ㄊㄤ ㄔˊ"},
+{id:37, zh:"鋁罐",     zhs:"铝罐",     py:"lǚ guàn",             zy:"ㄌㄩˇ ㄍㄨㄢˋ"},
+{id:38, zh:"衛生紙",   zhs:"卫生纸",   py:"wèi shēng zhǐ",       zy:"ㄨㄟˋ ㄕㄥ ㄓˇ"},
+{id:39, zh:"釘書機",   zhs:"订书机",   py:"dìng shū jī",         zy:"ㄉㄧㄥˋ ㄕㄨ ㄐㄧ"},
+{id:40, zh:"電池",     zhs:"电池",     py:"diàn chí",            zy:"ㄉㄧㄢˋ ㄔˊ"},
+{id:41, zh:"原子筆",   zhs:"原子笔",   py:"yuán zǐ bǐ",          zy:"ㄩㄢˊ ㄗˇ ㄅㄧˇ"},
+{id:42, zh:"鉛筆",     zhs:"铅笔",     py:"qiān bǐ",             zy:"ㄑㄧㄢ ㄅㄧˇ"},
+{id:43, zh:"橡皮擦",   zhs:"橡皮擦",   py:"xiàng pí cā",         zy:"ㄒㄧㄤˋ ㄆㄧˊ ㄘㄚ"},
+{id:44, zh:"眼鏡",     zhs:"眼镜",     py:"yǎn jìng",            zy:"ㄧㄢˇ ㄐㄧㄥˋ"},
+{id:45, zh:"鏡子",     zhs:"镜子",     py:"jìng zi",             zy:"ㄐㄧㄥˋ ˙ㄗ"},
+{id:46, zh:"鑰匙",     zhs:"钥匙",     py:"yào shi",            zy:"ㄧㄠˋ ˙ㄕ"},
+{id:47, zh:"剪刀", zhs:"剪刀", py:"jiǎn dāo", zy:"ㄐㄧㄢˇ ㄉㄠ"},
+{id:48, zh:"膠帶", zhs:"胶带", py:"jiāo dài", zy:"ㄐㄧㄠ ㄉㄞˋ"},
+{id:49, zh:"尺", zhs:"尺", py:"chǐ", zy:"ㄔˇ"},
+{id:50, zh:"計算機", zhs:"计算机", py:"jì suàn jī", zy:"ㄐㄧˋ ㄙㄨㄢˋ ㄐㄧ"},
+{id:51, zh:"便利貼", zhs:"便利贴", py:"biàn lì tiē", zy:"ㄅㄧㄢˋ ㄌㄧˋ ㄊㄧㄝ"},
+{id:52, zh:"帽子", zhs:"帽子", py:"mào zi", zy:"ㄇㄠˋ ˙ㄗ"},
+{id:53, zh:"襪子", zhs:"袜子", py:"wà zi", zy:"ㄨㄚˋ ˙ㄗ"},
+{id:54, zh:"圍巾", zhs:"围巾", py:"wéi jīn", zy:"ㄨㄟˊ ㄐㄧㄣ"},
+{id:55, zh:"手套", zhs:"手套", py:"shǒu tào", zy:"ㄕㄡˇ ㄊㄠˋ"},
+{id:56, zh:"皮帶", zhs:"皮带", py:"pí dài", zy:"ㄆㄧˊ ㄉㄞˋ"},
+{id:57, zh:"項鍊", zhs:"项链", py:"xiàng liàn", zy:"ㄒㄧㄤˋ ㄌㄧㄢˋ"},
+{id:58, zh:"安全帽", zhs:"安全帽", py:"ān quán mào", zy:"ㄢ ㄑㄩㄢˊ ㄇㄠˋ"},
+{id:59, zh:"手機", zhs:"手机", py:"shǒu jī", zy:"ㄕㄡˇ ㄐㄧ"},
+{id:60, zh:"耳機", zhs:"耳机", py:"ěr jī", zy:"ㄦˇ ㄐㄧ"},
+{id:61, zh:"充電線", zhs:"充电线", py:"chōng diàn xiàn", zy:"ㄔㄨㄥ ㄉㄧㄢˋ ㄒㄧㄢˋ"},
+{id:62, zh:"滑鼠", zhs:"滑鼠", py:"huá shǔ", zy:"ㄏㄨㄚˊ ㄕㄨˇ"},
+{id:63, zh:"隨身碟", zhs:"随身碟", py:"suí shēn dié", zy:"ㄙㄨㄟˊ ㄕㄣ ㄉㄧㄝˊ"},
+{id:64, zh:"碗", zhs:"碗", py:"wǎn", zy:"ㄨㄢˇ"},
+{id:65, zh:"茶壺", zhs:"茶壶", py:"chá hú", zy:"ㄔㄚˊ ㄏㄨˊ"},
+{id:66, zh:"蘋果", zhs:"苹果", py:"píng guǒ", zy:"ㄆㄧㄥˊ ㄍㄨㄛˇ"},
+{id:67, zh:"鬧鐘", zhs:"闹钟", py:"nào zhōng", zy:"ㄋㄠˋ ㄓㄨㄥ"},
+{id:68, zh:"檯燈", zhs:"台灯", py:"tái dēng", zy:"ㄊㄞˊ ㄉㄥ"},
+{id:69, zh:"枕頭", zhs:"枕头", py:"zhěn tóu", zy:"ㄓㄣˇ ㄊㄡˊ"},
+{id:70, zh:"書", zhs:"书", py:"shū", zy:"ㄕㄨ"},
+{id:71, zh:"垃圾袋", zhs:"垃圾袋", py:"lè sè dài", zy:"ㄌㄜˋ ㄙㄜˋ ㄉㄞˋ"},
+{id:72, zh:"肥皂", zhs:"肥皂", py:"féi zào", zy:"ㄈㄟˊ ㄗㄠˋ"},
+{id:73, zh:"洗髮精", zhs:"洗发精", py:"xǐ fǎ jīng", zy:"ㄒㄧˇ ㄈㄚˇ ㄐㄧㄥ"},
+{id:74, zh:"指甲剪", zhs:"指甲剪", py:"zhǐ jiǎ jiǎn", zy:"ㄓˇ ㄐㄧㄚˇ ㄐㄧㄢˇ"},
+{id:75, zh:"口罩", zhs:"口罩", py:"kǒu zhào", zy:"ㄎㄡˇ ㄓㄠˋ"}
+];
+
+/* ============ 介面文字：key|繁體|簡體(=同繁體)|Español|English ============ */
+const UI_TEXT = `title|華語大富翁|华语大富翁|Monopoly de chino|Chinese Monopoly
+subtitle|課堂互動遊戲：擲骰子，走到格子，說出圖片的中文|课堂互动游戏：掷骰子，走到格子，说出图片的中文|Juego de clase: tira el dado, avanza y di en chino qué ves|Classroom game: roll, move, and say the Chinese for the picture
+players|玩家人數|玩家人数|Jugadores|Players
+playerDefault|玩家|=|Jugador|Player
+addPlayer|新增玩家|=|Añadir jugador|Add player
+tiles|格子數（12～40，偶數）|格子数（12～40，偶数）|Casillas (12–40, número par)|Squares (12–40, even)
+endMode|結束方式|结束方式|Final del juego|Game ends
+endLaps|繞圈數|绕圈数|Vueltas|Laps
+endCoins|金幣數|金币数|Monedas|Coins
+endManual|老師按結束|老师按结束|Lo termina el profesor|Teacher ends it
+lapsN|圈|=|vueltas|laps
+goBonus|經過起點給獎金|经过起点给奖金|Premio al pasar por la salida|Bonus for passing GO
+startMoney|起始金幣|起始金币|Monedas iniciales|Starting coins
+presets|獎金快捷鍵|奖金快捷键|Atajos de premio|Reward shortcuts
+source|字庫來源|字库来源|Fuente de palabras|Word source
+srcArmario|收納小達人（75 個物品）|收纳小达人（75 个物品）|Ordena el Armario (75 objetos)|Ordena el Armario (75 items)
+srcBank|總字庫（尚未建立）|总字库（尚未建立）|Banco de palabras (aún no existe)|Word bank (not built yet)
+start|開始遊戲|开始游戏|Empezar|Start
+turn|輪到 {n}|轮到 {n}|Turno de {n}|{n}'s turn
+roll|🎲 擲骰子|🎲 掷骰子|🎲 Tirar el dado|🎲 Roll
+rolling|骰子滾動中…|骰子滚动中…|Tirando…|Rolling…
+moving|前進中…|前进中…|Avanzando…|Moving…
+sayIt|請說出圖片的中文|请说出图片的中文|Di en chino qué es la imagen|Say the Chinese for the picture
+reveal|👁 看答案|=|👁 Ver respuesta|👁 Show answer
+speak|🔊 念一次|=|🔊 Escuchar|🔊 Hear it
+correct|✅ 說對|✅ 说对|✅ Correcto|✅ Correct
+wrong|❌ 說錯|❌ 说错|❌ Incorrecto|❌ Wrong
+rewardTitle|發多少獎金？|发多少奖金？|¿Cuánto premio?|How much reward?
+custom|自訂金額|自订金额|Otra cantidad|Custom
+noReward|不發獎金|不发奖金|Sin premio|No reward
+ok|確定|确定|OK|OK
+tileNo|第 {n} 格|=|Casilla {n}|Square {n}
+goName|出發|出发|SALIDA|GO
+goLand|回到起點！|回到起点！|¡De vuelta en la salida!|Back at GO!
+goPass|經過起點 +{n}|经过起点 +{n}|Pasó por la salida +{n}|Passed GO +{n}
+next|下一位 ➜|=|Siguiente ➜|Next ➜
+skip|⏭ 跳過這位|⏭ 跳过这位|⏭ Saltar|⏭ Skip
+backWrong|退回原本的格子|=|Vuelve a su casilla|Back to the previous square
+teacher|🛠 老師工具|🛠 老师工具|🛠 Herramientas|🛠 Teacher tools
+cName|名字|=|Nombre|Name
+cCoins|金幣|金币|Monedas|Coins
+cPos|所在格|=|Casilla|Square
+cLaps|圈數|圈数|Vueltas|Laps
+close|關閉|关闭|Cerrar|Close
+endGame|⏹ 結束遊戲|⏹ 结束游戏|⏹ Terminar|⏹ End game
+confirmEnd|確定要結束遊戲嗎？|确定要结束游戏吗？|¿Terminar el juego?|End the game?
+yes|是|=|Sí|Yes
+cancel|取消|=|Cancelar|Cancel
+winner|🏆 {n} 獲勝！|🏆 {n} 获胜！|🏆 ¡Gana {n}!|🏆 {n} wins!
+ranking|排名|=|Clasificación|Ranking
+again|再玩一次|=|Jugar otra vez|Play again
+backSetup|回設定畫面|回设置画面|Volver a ajustes|Back to setup
+settings|設定|设置|Ajustes|Settings
+setScript|字體|字体|Escritura|Script
+setLang|介面語言|界面语言|Idioma|Language
+setPhon|讀音|读音|Pronunciación|Reading
+setRate|語速|语速|Velocidad|Speed
+trad|繁體|繁体|Tradicional|Traditional
+simp|簡體|简体|Simplificado|Simplified
+pinyin|拼音|=|Pinyin|Pinyin
+zhuyin|注音|=|Zhuyin|Zhuyin
+both|兩種|两种|Ambos|Both
+off|不顯示|不显示|Ocultar|Hide
+slow|慢|=|Lenta|Slow
+normal|中|=|Normal|Normal
+fast|快|=|Rápida|Fast
+lapShort|圈|=|vuelta|lap
+tooFew|至少要有 1 位玩家|至少要有 1 位玩家|Se necesita al menos 1 jugador|At least 1 player is needed`;
+const UI = {};
+UI_TEXT.split('\n').forEach(l => { const [k,t,s,es,en] = l.split('|'); UI[k] = { t, s: s === '=' ? t : s, es, en }; });
+function tx(k, v){
+  const u = UI[k]; if (!u) return k;
+  let s = Settings.lang === 'es' ? u.es : Settings.lang === 'en' ? u.en : (Settings.script === 'simp' ? u.s : u.t);
+  if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]);
+  return s;
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hz = it => Settings.script === 'simp' ? it.zhs : it.zh;
+
+/* ============ 常數 ============ */
+const COLORS = ['#e1262c','#1b6fd8','#1fa45a','#f0b400','#8a3fc7','#ef6c9b'];
+const BANDS = ['#955436','#aae0fa','#d93a96','#f7941d','#ed1b24','#fef200','#1fb25a','#0072bb'];
+const BAND_TXT = ['#fff','#111','#fff','#111','#fff','#111','#fff','#fff'];
+const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+const SAVE_KEY = 'chineseMonopoly.setup';
+const TILE_CHOICES = [12,16,20,24,32,40];
+
+/* ============ 設定（開局前） ============ */
+const DEF = { players:['',''], n:24, endMode:'laps', laps:2, coinsTarget:300, goOn:true, goAmount:50, startMoney:100, presets:[10,20,50] };
+let cfg = loadCfg();
+function loadCfg(){
+  let c = {};
+  try{ c = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}') || {}; }catch(e){}
+  const o = Object.assign({}, DEF, c);
+  if (!Array.isArray(o.players) || !o.players.length || o.players.length > 6) o.players = DEF.players.slice();
+  if (!Array.isArray(o.presets) || o.presets.length !== 3) o.presets = DEF.presets.slice();
+  return o;
+}
+function saveCfg(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(cfg)); }catch(e){} }
+
+/* ============ 遊戲狀態 ============ */
+const G = { screen:'setup', phase:'setup', n:24, c:8, r:6, cells:[], tiles:[], players:[], cur:0, dice:null, from:0, lapGained:false, revealed:false };
+const $app = document.getElementById('app');
+const curP = () => G.players[G.cur];
+
+function pawn(color){
+  return `<svg viewBox="0 0 24 32" aria-hidden="true"><circle cx="12" cy="8" r="6" fill="${color}" stroke="#111" stroke-width="1.6"/><path d="M12 13C5 20 3 28 2 30H22C21 28 19 20 12 13Z" fill="${color}" stroke="#111" stroke-width="1.6"/></svg>`;
+}
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function ring(c, r){
+  const a = [];
+  for (let col = c - 1; col >= 0; col--) a.push([r - 1, col]);
+  for (let row = r - 2; row >= 0; row--) a.push([row, 0]);
+  for (let col = 1; col < c; col++) a.push([0, col]);
+  for (let row = 1; row < r - 1; row++) a.push([row, c - 1]);
+  return a;
+}
+function billClass(v){ return v <= 10 ? 'b1' : v <= 20 ? 'b2' : v <= 50 ? 'b3' : v <= 100 ? 'b4' : 'b5'; }
+function toast(msg){
+  const old = document.getElementById('toast'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'toast'; d.className = 'toast'; d.textContent = msg; document.body.appendChild(d);
+  setTimeout(() => d.remove(), 2200);
+}
+
+/* ============ 語音（只用台灣中文聲音） ============ */
+function isMandarin(v){ const l = String((v && v.lang) || '').toLowerCase().replace(/_/g,'-'); if (l.indexOf('yue') === 0 || l.indexOf('zh-hk') === 0) return false; return l === 'zh' || l.indexOf('zh-') === 0 || l.indexOf('cmn') === 0; }
+function speak(text){
+  try{
+    const ss = window.speechSynthesis; if (!ss) return;
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const ok = (ss.getVoices() || []).filter(isMandarin);
+    const v = ok.find(x => /zh[-_]tw/i.test(x.lang)) || ok[0];
+    if (v) u.voice = v;
+    u.lang = 'zh-TW'; u.rate = RATE_VALUE[Settings.rate] || 0.65;
+    ss.speak(u);
+  }catch(e){}
+}
+
+/* ============ 設定畫面 ============ */
+function renderSetup(){
+  G.screen = 'setup'; G.phase = 'setup';
+  const c = cfg;
+  const chip = (k, v, label) => `<button class="chip${String(c[k]) === String(v) ? ' on' : ''}" data-act="set" data-k="${k}" data-v="${v}">${label}</button>`;
+  $app.innerHTML = `<div class="setup">
+    <div class="topbar"><button class="sq" data-act="settings" aria-label="${tx('settings')}">⚙️</button></div>
+    <div class="banner">${tx('title')}</div>
+    <div class="sub">${tx('subtitle')}</div>
+    <div class="card"><h3>${tx('players')}</h3>
+      ${c.players.map((n, i) => `<div class="prow">${pawn(COLORS[i])}<input data-pn="${i}" value="${esc(n)}" placeholder="${tx('playerDefault')} ${i + 1}" maxlength="12">${c.players.length > 1 ? `<button class="x" data-act="delp" data-i="${i}" aria-label="remove">✕</button>` : ''}</div>`).join('')}
+      ${c.players.length < 6 ? `<button class="ghost" data-act="addp">＋ ${tx('addPlayer')}</button>` : ''}
+    </div>
+    <div class="card"><h3>${tx('tiles')}</h3>
+      <div class="chips">${TILE_CHOICES.map(v => chip('n', v, v)).join('')}
+        <input class="num" type="number" min="12" max="40" step="2" data-cfg="n" value="${c.n}" aria-label="tiles"></div>
+    </div>
+    <div class="card"><h3>${tx('endMode')}</h3>
+      <div class="chips">${chip('endMode','laps',tx('endLaps'))}${chip('endMode','coins',tx('endCoins'))}${chip('endMode','manual',tx('endManual'))}</div>
+      ${c.endMode === 'laps' ? `<div class="row"><label>${tx('endLaps')} <input class="num" type="number" min="1" max="10" data-cfg="laps" value="${c.laps}"> ${tx('lapsN')}</label></div>` : ''}
+      ${c.endMode === 'coins' ? `<div class="row"><label>${tx('endCoins')} <input class="num" type="number" min="10" step="10" data-cfg="coinsTarget" value="${c.coinsTarget}"></label></div>` : ''}
+    </div>
+    <div class="card"><h3>$</h3>
+      <div class="row"><label>${tx('startMoney')} <input class="num" type="number" min="0" step="10" data-cfg="startMoney" value="${c.startMoney}"></label></div>
+      <div class="row"><label><input type="checkbox" data-cfg="goOn" ${c.goOn ? 'checked' : ''}> ${tx('goBonus')}</label>
+        ${c.goOn ? `<input class="num" type="number" min="0" step="10" data-cfg="goAmount" value="${c.goAmount}" aria-label="go amount">` : ''}</div>
+      <div class="row"><span>${tx('presets')}</span>${c.presets.map((v, i) => `<input class="num" type="number" min="1" data-preset="${i}" value="${v}">`).join('')}</div>
+    </div>
+    <div class="card"><h3>${tx('source')}</h3>
+      <div class="row"><label><input type="checkbox" checked disabled> ${tx('srcArmario')}</label></div>
+      <div class="row"><label><input type="checkbox" disabled> ${tx('srcBank')}</label></div>
+    </div>
+    <button class="bigbtn" data-act="start">${tx('start')}</button>
+  </div>`;
+}
+
+/* ============ 遊戲畫面 ============ */
+function startGame(){
+  let n = Math.round(+cfg.n || 24); n = Math.max(12, Math.min(40, n)); if (n % 2) n++;
+  cfg.n = n; cfg.laps = Math.max(1, Math.round(+cfg.laps || 1)); cfg.coinsTarget = Math.max(1, +cfg.coinsTarget || 100);
+  cfg.startMoney = Math.max(0, +cfg.startMoney || 0); cfg.goAmount = Math.max(0, +cfg.goAmount || 0);
+  cfg.presets = cfg.presets.map((v, i) => Math.max(1, Math.round(+v || DEF.presets[i])));
+  saveCfg();
+  const pool = shuffle(POOL.slice());
+  G.tiles = [null]; for (let i = 1; i < n; i++) G.tiles.push(pool[(i - 1) % pool.length]);
+  G.n = n; const s = n / 2 + 2; G.r = Math.max(3, Math.round(s * 0.43)); G.c = s - G.r; G.cells = ring(G.c, G.r);
+  G.players = cfg.players.map((nm, i) => ({ name: (nm || '').trim() || `${tx('playerDefault')} ${i + 1}`, color: COLORS[i], pos: 0, coins: cfg.startMoney, laps: 0 }));
+  G.cur = 0; G.dice = null; G.phase = 'ready'; G.revealed = false; G.lapGained = false; G.screen = 'game';
+  renderGame();
+}
+function renderGame(){
+  G.screen = 'game';
+  const ar = G.c / (G.r * 1.12);
+  $app.innerHTML = `<div class="game"><div class="boardWrap"><div id="board" class="board" style="grid-template-columns:repeat(${G.c},1fr);grid-template-rows:repeat(${G.r},1fr);aspect-ratio:${ar};max-width:calc((100vh - 60px) * ${ar});--rEnd:${G.r};--cEnd:${G.c}"></div></div><aside id="panel" class="panel"></aside></div>`;
+  buildBoard(); renderPanel(); updatePawns();
+}
+function buildBoard(){
+  const b = document.getElementById('board'); let h = '';
+  for (let i = 0; i < G.n; i++){
+    const [row, col] = G.cells[i]; const pos = `grid-row:${row + 1};grid-column:${col + 1}`;
+    if (i === 0){
+      h += `<div class="tile go" data-i="0" style="${pos}"><div class="gt">${tx('goName')}</div><div class="ga">⬅</div><div class="pawns"></div></div>`;
+    } else {
+      const it = G.tiles[i], bi = (i - 1) % 8;
+      h += `<div class="tile" data-i="${i}" style="${pos}"><div class="band" style="background:${BANDS[bi]};color:${BAND_TXT[bi]}">${i}</div><div class="pic">${picHTML(it)}</div><div class="pawns"></div></div>`;
+    }
+  }
+  h += `<div class="center"><div class="banner">${tx('title')}</div><div class="info">${modeInfo()}</div></div>`;
+  b.innerHTML = h;
+  b.querySelectorAll('img').forEach(img => img.addEventListener('error', () => imgFail(img)));
+}
+function picHTML(it){ return `<img src="images/圖片${it.id}.webp" alt="" data-fb="${esc(it.es || it.en || '？')}">`; }
+function imgFail(img){ const d = document.createElement('div'); d.className = 'fb'; d.textContent = img.dataset.fb || '？'; img.replaceWith(d); }
+function modeInfo(){
+  if (cfg.endMode === 'laps') return `${cfg.laps} ${tx('lapsN')}`;
+  if (cfg.endMode === 'coins') return `$ ${cfg.coinsTarget}`;
+  return tx('endManual');
+}
+function updatePawns(){
+  const b = document.getElementById('board'); if (!b) return;
+  b.querySelectorAll('.tile').forEach(t => {
+    const i = +t.dataset.i;
+    t.querySelector('.pawns').innerHTML = G.players.filter(p => p.pos === i).map(p => pawn(p.color)).join('');
+    const showCur = ['moving','answer','reward','goLanded'].includes(G.phase) && curP() && curP().pos === i;
+    t.classList.toggle('cur', !!showCur);
+  });
+}
+function hopTile(i){ const t = document.querySelector(`.tile[data-i="${i}"]`); if (t){ t.classList.remove('hop'); void t.offsetWidth; t.classList.add('hop'); } }
+
+function diceHTML(v){
+  const on = PIPS[v] || [];
+  return `<div class="dice${G.phase === 'rolling' ? ' roll' : ''}" id="dice">${[0,1,2,3,4,5,6,7,8].map(i => `<i class="${on.includes(i) ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+function setDice(v){ const d = document.getElementById('dice'); if (d) d.innerHTML = [0,1,2,3,4,5,6,7,8].map(i => `<i class="${(PIPS[v] || []).includes(i) ? 'on' : ''}"></i>`).join(''); }
+
+function renderPanel(){
+  const el = document.getElementById('panel'); if (!el) return;
+  const p = curP(), ph = G.phase; let h = '';
+  h += `<div class="btns"><button class="btn sm" data-act="settings">⚙️ ${tx('settings')}</button><button class="btn sm" data-act="tools">${tx('teacher')}</button><button class="btn sm" data-act="endAsk">${tx('endGame')}</button></div>`;
+  h += `<div class="turn">${pawn(p.color)}<div class="turnName">${tx('turn', { n: esc(p.name) })}</div></div>`;
+  h += `<div class="diceRow">${diceHTML(G.dice)}<div style="flex:1">${
+    ph === 'ready' ? `<button class="bigbtn" style="width:100%;font-size:20px;padding:10px 6px" data-act="roll">${tx('roll')}</button><button class="btn sm" style="width:100%;margin-top:8px" data-act="skip">${tx('skip')}</button>`
+    : ph === 'rolling' ? `<div class="hint">${tx('rolling')}</div>`
+    : ph === 'moving' ? `<div class="hint">${tx('moving')}</div>` : ''}</div></div>`;
+  if (ph === 'answer' || ph === 'reward'){
+    const it = G.tiles[p.pos], bi = (p.pos - 1) % 8;
+    h += `<div class="deed${ph === 'reward' ? ' compact' : ''}"><div class="dband" style="background:${BANDS[bi]};color:${BAND_TXT[bi]}"><span>${tx('tileNo', { n: p.pos })}</span></div>
+      <div class="dpic">${picHTML(it)}</div>
+      ${G.revealed ? `<div class="ans"><div class="hz">${esc(hz(it))}</div>${phonHTML(it)}</div>` : `<div class="say">${tx('sayIt')}</div>`}</div>`;
+    if (ph === 'answer'){
+      h += `<div class="btns">${G.revealed ? '' : `<button class="btn" data-act="reveal">${tx('reveal')}</button>`}<button class="btn" data-act="speakIt">${tx('speak')}</button></div>
+        <div class="btns"><button class="btn ok" data-act="correct">${tx('correct')}</button><button class="btn no" data-act="wrong">${tx('wrong')}</button></div>`;
+    } else {
+      h += `<div class="rtitle">${tx('rewardTitle')}</div>
+        <div class="btns">${cfg.presets.map(v => `<button class="bill ${billClass(v)}" data-act="reward" data-v="${v}">+$${v}</button>`).join('')}</div>
+        <div class="custom"><input id="customReward" type="number" min="0" placeholder="${tx('custom')}"><button class="btn" style="flex:none" data-act="rewardCustom">${tx('ok')}</button></div>
+        <button class="btn sm" style="width:100%" data-act="reward" data-v="0">${tx('noReward')}</button>`;
+    }
+  } else if (ph === 'goLanded'){
+    h += `<div class="deed"><div class="dband" style="background:#fff"><span>${tx('goName')}</span></div><div class="gobig">${tx('goLand')}${cfg.goOn ? `<div style="font-size:20px;margin-top:6px">+$${cfg.goAmount}</div>` : ''}</div></div>
+      <div class="btns"><button class="btn ok" data-act="goNext">${tx('next')}</button></div>`;
+  }
+  h += `<div class="score">${G.players.map((q, i) => `<div class="srow${i === G.cur ? ' me' : ''}">${pawn(q.color)}<span class="nm">${esc(q.name)}</span><span class="lp">${tx('lapShort')} ${q.laps}${cfg.endMode === 'laps' ? '/' + cfg.laps : ''}</span><span class="cn">$${q.coins}</span></div>`).join('')}</div>`;
+  el.innerHTML = h;
+  el.querySelectorAll('img').forEach(img => img.addEventListener('error', () => imgFail(img)));
+}
+function phonHTML(it){
+  const m = Settings.phon;
+  if (m === 'off') return '';
+  const lines = [];
+  if (m === 'pinyin' || m === 'both') lines.push(esc(it.py));
+  if (m === 'zhuyin' || m === 'both') lines.push(esc(it.zy));
+  return lines.map(l => `<div class="ph">${l}</div>`).join('');
+}
+
+/* ============ 回合流程 ============ */
+function roll(){
+  if (G.phase !== 'ready') return;
+  G.phase = 'rolling'; renderPanel(); updatePawns();
+  let k = 0;
+  const tm = setInterval(() => {
+    k++; setDice(1 + Math.floor(Math.random() * 6));
+    if (k >= 9){
+      clearInterval(tm);
+      const d = window.__nextDice ? +window.__nextDice : 1 + Math.floor(Math.random() * 6);
+      window.__nextDice = 0; G.dice = d; G.phase = 'moving'; renderPanel(); move(d);
+    }
+  }, 80);
+}
+function move(d){
+  const p = curP(); G.from = p.pos; G.lapGained = p.pos + d >= G.n; G.revealed = false;
+  let step = 0;
+  const t = setInterval(() => {
+    step++; p.pos = (p.pos + 1) % G.n; updatePawns(); hopTile(p.pos);
+    if (step >= d){ clearInterval(t); G.phase = p.pos === 0 ? 'goLanded' : 'answer'; renderPanel(); updatePawns(); }
+  }, 230);
+}
+function award(v){
+  const p = curP(); let gain = v;
+  if (G.lapGained){
+    p.laps++;
+    if (cfg.goOn && cfg.goAmount > 0){ gain += cfg.goAmount; toast(tx('goPass', { n: '$' + cfg.goAmount })); }
+  }
+  p.coins += gain; G.lapGained = false;
+  afterTurn();
+}
+function wrongMove(){
+  const p = curP(); G.phase = 'moving'; G.lapGained = false; renderPanel();
+  const t = setInterval(() => {
+    p.pos = (p.pos - 1 + G.n) % G.n; updatePawns();
+    if (p.pos === G.from){ clearInterval(t); toast(tx('backWrong')); afterTurn(); }
+  }, 140);
+  if (p.pos === G.from){ clearInterval(t); afterTurn(); }
+}
+function isOver(){
+  if (cfg.endMode === 'laps') return G.players.some(p => p.laps >= cfg.laps);
+  if (cfg.endMode === 'coins') return G.players.some(p => p.coins >= cfg.coinsTarget);
+  return false;
+}
+function afterTurn(){
+  if (isOver()){ finish(); return; }
+  nextPlayer();
+}
+function nextPlayer(){
+  G.cur = (G.cur + 1) % G.players.length; G.phase = 'ready'; G.revealed = false; G.lapGained = false;
+  renderPanel(); updatePawns();
+}
+function finish(){
+  G.phase = 'over'; renderPanel(); updatePawns();
+  const rk = G.players.slice().sort((a, b) => b.coins - a.coins || b.laps - a.laps);
+  openModal(`<div class="winner">${tx('winner', { n: esc(rk[0].name) })}</div>
+    <h3>${tx('ranking')}</h3>
+    ${rk.map((p, i) => `<div class="rank"><span>${['🥇','🥈','🥉'][i] || (i + 1)}</span>${pawn(p.color)}<span style="flex:1">${esc(p.name)}</span><span>$${p.coins}</span></div>`).join('')}
+    <div class="btns" style="margin-top:12px"><button class="btn ok" data-act="again">${tx('again')}</button><button class="btn" data-act="backSetup">${tx('backSetup')}</button></div>`);
+}
+
+/* ============ 彈出視窗 ============ */
+function openModal(html){
+  closeModal();
+  const o = document.createElement('div'); o.className = 'overlay'; o.id = 'overlay';
+  o.innerHTML = `<div class="modal">${html}</div>`; document.body.appendChild(o);
+}
+function closeModal(){ const o = document.getElementById('overlay'); if (o) o.remove(); }
+function settingsHTML(){
+  const seg = (k, opts) => `<div class="row"><b style="min-width:84px">${tx(k === 'script' ? 'setScript' : k === 'lang' ? 'setLang' : k === 'phon' ? 'setPhon' : 'setRate')}</b><div class="chips">${opts.map(([v, label]) => `<button class="chip${Settings[k] === v ? ' on' : ''}" data-act="setS" data-k="${k}" data-v="${v}">${label}</button>`).join('')}</div></div>`;
+  return `<h3>⚙️ ${tx('settings')}</h3>
+    ${seg('script', [['trad', tx('trad')], ['simp', tx('simp')]])}
+    ${seg('lang', [['es', 'Español'], ['en', 'English'], ['zh', '中文']])}
+    ${seg('phon', [['pinyin', tx('pinyin')], ['zhuyin', tx('zhuyin')], ['both', tx('both')], ['off', tx('off')]])}
+    ${seg('rate', [['slow', tx('slow')], ['normal', tx('normal')], ['fast', tx('fast')]])}
+    <div class="btns"><button class="btn" data-act="closeModal">${tx('close')}</button></div>`;
+}
+function toolsHTML(){
+  return `<h3>${tx('teacher')}</h3>
+    <table><tr><th></th><th>${tx('cName')}</th><th>${tx('cCoins')}</th><th>${tx('cPos')}</th><th>${tx('cLaps')}</th></tr>
+    ${G.players.map((p, i) => `<tr><td>${pawn(p.color).replace('<svg ', '<svg width="18" height="24" ')}</td>
+      <td><input data-tp="${i}" data-f="name" value="${esc(p.name)}" maxlength="12"></td>
+      <td><input type="number" data-tp="${i}" data-f="coins" value="${p.coins}"></td>
+      <td><input type="number" data-tp="${i}" data-f="pos" min="0" max="${G.n - 1}" value="${p.pos}"></td>
+      <td><input type="number" data-tp="${i}" data-f="laps" min="0" value="${p.laps}"></td></tr>`).join('')}</table>
+    <div class="btns" style="margin-top:10px"><button class="btn" data-act="closeTools">${tx('close')}</button></div>`;
+}
+
+/* ============ 事件 ============ */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  switch (a){
+    case 'set': cfg[b.dataset.k] = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v; renderSetup(); break;
+    case 'addp': if (cfg.players.length < 6){ cfg.players.push(''); renderSetup(); } break;
+    case 'delp': if (cfg.players.length > 1){ cfg.players.splice(+b.dataset.i, 1); renderSetup(); } break;
+    case 'start': if (cfg.players.length >= 1) startGame(); break;
+    case 'settings': openModal(settingsHTML()); break;
+    case 'setS': Settings[b.dataset.k] = b.dataset.v; writeSettings(Settings); openModal(settingsHTML());
+      if (G.screen === 'game') renderGame(); else renderSetup(); break;
+    case 'closeModal': closeModal(); break;
+    case 'roll': roll(); break;
+    case 'skip': if (G.phase === 'ready') nextPlayer(); break;
+    case 'reveal': G.revealed = true; renderPanel(); speak(G.tiles[curP().pos].zh); break;
+    case 'speakIt': speak(G.tiles[curP().pos].zh); break;
+    case 'correct': if (G.phase === 'answer'){ G.phase = 'reward'; renderPanel(); } break;
+    case 'wrong': if (G.phase === 'answer') wrongMove(); break;
+    case 'reward': if (G.phase === 'reward') award(+b.dataset.v || 0); break;
+    case 'rewardCustom': if (G.phase === 'reward'){ const v = Math.max(0, Math.round(+document.getElementById('customReward').value || 0)); award(v); } break;
+    case 'goNext': if (G.phase === 'goLanded') award(0); break;
+    case 'tools': openModal(toolsHTML()); break;
+    case 'closeTools': closeModal(); renderPanel(); updatePawns(); break;
+    case 'endAsk': openModal(`<h3>${tx('confirmEnd')}</h3><div class="btns"><button class="btn no" data-act="endYes">${tx('yes')}</button><button class="btn" data-act="closeModal">${tx('cancel')}</button></div>`); break;
+    case 'endYes': closeModal(); finish(); break;
+    case 'again': closeModal(); startGame(); break;
+    case 'backSetup': closeModal(); renderSetup(); break;
+  }
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.pn !== undefined){ cfg.players[+t.dataset.pn] = t.value; saveCfg(); }
+  else if (t.dataset.cfg){ cfg[t.dataset.cfg] = t.type === 'checkbox' ? t.checked : (t.type === 'number' ? t.value : t.value); saveCfg(); }
+  else if (t.dataset.preset !== undefined){ cfg.presets[+t.dataset.preset] = t.value; saveCfg(); }
+  else if (t.dataset.tp !== undefined){
+    const p = G.players[+t.dataset.tp], f = t.dataset.f;
+    if (f === 'name') p.name = t.value.slice(0, 12) || p.name;
+    else if (f === 'pos') p.pos = Math.max(0, Math.min(G.n - 1, Math.round(+t.value || 0)));
+    else if (f === 'laps') p.laps = Math.max(0, Math.round(+t.value || 0));
+    else p.coins = Math.round(+t.value || 0);
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.type === 'checkbox' && t.dataset.cfg === 'goOn'){ cfg.goOn = t.checked; saveCfg(); renderSetup(); }
+  if (t.dataset.cfg === 'n'){ document.querySelectorAll('.chip[data-k=n]').forEach(c => c.classList.toggle('on', String(cfg.n) === c.dataset.v)); }
+});
+
+window.__mono = { G, get cfg(){ return cfg; }, POOL };
+renderSetup();
+})();
+</script>
+<script>
+/* ===== 版權說明 ===== */
+(function(){
+  if(window.__hgCopy)return; window.__hgCopy=1;
+  function mk(){
+    if(document.getElementById('hgCopy'))return;
+    if(document.documentElement.hasAttribute('data-hg-nocopy'))return;
+    var d=document.createElement('div'); d.id='hgCopy';
+    d.textContent='© 2026 @cadadiaunosminutos_ben_chino ｜ 保留所有權利 / Todos los derechos reservados';
+    d.style.cssText='display:block;flex:none;width:100%;box-sizing:border-box;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));text-align:center;font:10px/1.4 system-ui,-apple-system,"Noto Sans TC",sans-serif;color:rgba(120,120,120,.85);user-select:none;position:static;';
+    var cs=getComputedStyle(document.body);
+    if(cs.display.indexOf('flex')>-1&&cs.flexDirection.indexOf('row')===0){document.body.style.flexWrap='wrap';d.style.flex='0 0 100%';}
+    document.body.appendChild(d);
+  }
+  if(document.body)mk(); else document.addEventListener('DOMContentLoaded',mk);
+})();
+/* ===== /版權說明 ===== */
+
+</script>
+</body>
+</html>
