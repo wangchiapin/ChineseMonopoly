@@ -35,6 +35,10 @@ button{font-family:inherit;cursor:pointer}
 .row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:7px 0;font-size:15px}
 .row label{display:flex;align-items:center;gap:6px}
 .num{width:84px;font-size:16px;padding:6px 8px;border:2px solid var(--ink);border-radius:5px;background:#fff}
+.f{font-size:.66em;font-weight:600;opacity:.88;margin-left:.35em;text-shadow:none;letter-spacing:0}
+.btn .f,.bigbtn .f,.chip .f,.bill .f,.banner .f,.tile .gt .f,.turnName .f,.sub .f,h3 .f,.winner .f,.say .f,.hint .f,.rtitle .f,.modal th .f,.ghost .f,.gobig .f,.dband .f{display:block;margin-left:0}
+.banner .f{font-size:.4em;letter-spacing:.04em;font-weight:700;text-shadow:none;margin-top:2px}
+.btn,.bigbtn,.chip{line-height:1.2}
 .bigbtn{border:4px solid var(--ink);border-radius:10px;background:var(--red);color:#fff;font-weight:900;font-size:22px;padding:12px 28px;box-shadow:0 6px 0 var(--ink);text-shadow:1px 1px 0 var(--ink)}
 .bigbtn:active{transform:translateY(3px);box-shadow:0 3px 0 var(--ink)}
 .bigbtn:disabled{opacity:.45;box-shadow:0 3px 0 var(--ink);transform:translateY(3px);cursor:default}
@@ -344,12 +348,32 @@ lapShort|圈|=|vuelta|lap
 tooFew|至少要有 1 位玩家|至少要有 1 位玩家|Se necesita al menos 1 jugador|At least 1 player is needed`;
 const UI = {};
 UI_TEXT.split('\n').forEach(l => { const [k,t,s,es,en] = l.split('|'); UI[k] = { t, s: s === '=' ? t : s, es, en }; });
+function fill(s, v){ if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]); return s; }
+function zhOf(u){ return Settings.script === 'simp' ? u.s : u.t; }
+/* 畫面文字：選「中文＋外語」時，中文後面接小字外語；選「純中文」只有中文 */
 function tx(k, v){
   const u = UI[k]; if (!u) return k;
-  let s = Settings.lang === 'es' ? u.es : Settings.lang === 'en' ? u.en : (Settings.script === 'simp' ? u.s : u.t);
-  if (v) for (const x in v) s = s.split('{' + x + '}').join(v[x]);
-  return s;
+  const z = fill(zhOf(u), v);
+  if (Settings.lang === 'zh') return z;
+  let f = fill(Settings.lang === 'es' ? u.es : u.en, v);
+  const m = z.match(/^[^\p{L}\p{N}$]+/u);                 // 前面的表情符號（👁、✅…）只留中文那行
+  if (m && f.startsWith(m[0])) f = f.slice(m[0].length);
+  return f === z ? z : `${z}<span class="f">${f}</span>`;
 }
+/* 只要單一語言的純文字（預設名字：純中文→玩家 1、西文→Jugador 1、英文→Player 1） */
+function txp(k, v){
+  const u = UI[k]; if (!u) return k;
+  return fill(Settings.lang === 'es' ? u.es : Settings.lang === 'en' ? u.en : zhOf(u), v);
+}
+/* 純文字「中文 / 外語」（輸入框提示、提示小視窗用，不能放 HTML） */
+function txt(k, v){
+  const u = UI[k]; if (!u) return k;
+  const z = fill(zhOf(u), v);
+  if (Settings.lang === 'zh') return z;
+  const f = fill(Settings.lang === 'es' ? u.es : u.en, v);
+  return f === z ? z : `${z} / ${f}`;
+}
+const tz = (k, v) => { const u = UI[k]; return u ? fill(zhOf(u), v) : k; };
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hz = it => Settings.script === 'simp' ? it.zhs : it.zh;
 
@@ -419,11 +443,11 @@ function renderSetup(){
   const c = cfg;
   const chip = (k, v, label) => `<button class="chip${String(c[k]) === String(v) ? ' on' : ''}" data-act="set" data-k="${k}" data-v="${v}">${label}</button>`;
   $app.innerHTML = `<div class="setup">
-    <div class="topbar"><button class="sq" data-act="settings" aria-label="${tx('settings')}">⚙️</button></div>
+    <div class="topbar"><button class="sq" data-act="settings" aria-label="${txp('settings')}">⚙️</button></div>
     <div class="banner">${tx('title')}</div>
     <div class="sub">${tx('subtitle')}</div>
     <div class="card"><h3>${tx('players')}</h3>
-      ${c.players.map((n, i) => `<div class="prow">${pawn(COLORS[i])}<input data-pn="${i}" value="${esc(n)}" placeholder="${tx('playerDefault')} ${i + 1}" maxlength="12">${c.players.length > 1 ? `<button class="x" data-act="delp" data-i="${i}" aria-label="remove">✕</button>` : ''}</div>`).join('')}
+      ${c.players.map((n, i) => `<div class="prow">${pawn(COLORS[i])}<input data-pn="${i}" value="${esc(n)}" placeholder="${txp('playerDefault')} ${i + 1}" maxlength="12">${c.players.length > 1 ? `<button class="x" data-act="delp" data-i="${i}" aria-label="remove">✕</button>` : ''}</div>`).join('')}
       ${c.players.length < 6 ? `<button class="ghost" data-act="addp">＋ ${tx('addPlayer')}</button>` : ''}
     </div>
     <div class="card"><h3>${tx('tiles')}</h3>
@@ -432,7 +456,7 @@ function renderSetup(){
     </div>
     <div class="card"><h3>${tx('endMode')}</h3>
       <div class="chips">${chip('endMode','laps',tx('endLaps'))}${chip('endMode','coins',tx('endCoins'))}${chip('endMode','manual',tx('endManual'))}</div>
-      ${c.endMode === 'laps' ? `<div class="row"><label>${tx('endLaps')} <input class="num" type="number" min="1" max="10" data-cfg="laps" value="${c.laps}"> ${tx('lapsN')}</label></div>` : ''}
+      ${c.endMode === 'laps' ? `<div class="row"><label>${tx('endLaps')} <input class="num" type="number" min="1" max="10" data-cfg="laps" value="${c.laps}"> ${tz('lapsN')}</label></div>` : ''}
       ${c.endMode === 'coins' ? `<div class="row"><label>${tx('endCoins')} <input class="num" type="number" min="10" step="10" data-cfg="coinsTarget" value="${c.coinsTarget}"></label></div>` : ''}
     </div>
     <div class="card"><h3>$</h3>
@@ -459,7 +483,7 @@ function startGame(){
   const pool = shuffle(POOL.slice());
   G.tiles = [null]; for (let i = 1; i < n; i++) G.tiles.push(pool[(i - 1) % pool.length]);
   G.n = n; const s = n / 2 + 2; G.r = Math.max(3, Math.round(s * 0.43)); G.c = s - G.r; G.cells = ring(G.c, G.r);
-  G.players = cfg.players.map((nm, i) => ({ name: (nm || '').trim() || `${tx('playerDefault')} ${i + 1}`, color: COLORS[i], pos: 0, coins: cfg.startMoney, laps: 0 }));
+  G.players = cfg.players.map((nm, i) => ({ name: (nm || '').trim() || `${txp('playerDefault')} ${i + 1}`, color: COLORS[i], pos: 0, coins: cfg.startMoney, laps: 0 }));
   G.cur = 0; G.dice = null; G.phase = 'ready'; G.revealed = false; G.lapGained = false; G.screen = 'game';
   renderGame();
 }
@@ -487,7 +511,7 @@ function buildBoard(){
 function picHTML(it){ return `<img src="images/圖片${it.id}.webp" alt="" data-fb="${esc(it.es || it.en || '？')}">`; }
 function imgFail(img){ const d = document.createElement('div'); d.className = 'fb'; d.textContent = img.dataset.fb || '？'; img.replaceWith(d); }
 function modeInfo(){
-  if (cfg.endMode === 'laps') return `${cfg.laps} ${tx('lapsN')}`;
+  if (cfg.endMode === 'laps') return `${cfg.laps} ${tz('lapsN')}`;
   if (cfg.endMode === 'coins') return `$ ${cfg.coinsTarget}`;
   return tx('endManual');
 }
@@ -528,14 +552,14 @@ function renderPanel(){
     } else {
       h += `<div class="rtitle">${tx('rewardTitle')}</div>
         <div class="btns">${cfg.presets.map(v => `<button class="bill ${billClass(v)}" data-act="reward" data-v="${v}">+$${v}</button>`).join('')}</div>
-        <div class="custom"><input id="customReward" type="number" min="0" placeholder="${tx('custom')}"><button class="btn" style="flex:none" data-act="rewardCustom">${tx('ok')}</button></div>
+        <div class="custom"><input id="customReward" type="number" min="0" placeholder="${txt('custom')}"><button class="btn" style="flex:none" data-act="rewardCustom">${tx('ok')}</button></div>
         <button class="btn sm" style="width:100%" data-act="reward" data-v="0">${tx('noReward')}</button>`;
     }
   } else if (ph === 'goLanded'){
     h += `<div class="deed"><div class="dband" style="background:#fff"><span>${tx('goName')}</span></div><div class="gobig">${tx('goLand')}${cfg.goOn ? `<div style="font-size:20px;margin-top:6px">+$${cfg.goAmount}</div>` : ''}</div></div>
       <div class="btns"><button class="btn ok" data-act="goNext">${tx('next')}</button></div>`;
   }
-  h += `<div class="score">${G.players.map((q, i) => `<div class="srow${i === G.cur ? ' me' : ''}">${pawn(q.color)}<span class="nm">${esc(q.name)}</span><span class="lp">${tx('lapShort')} ${q.laps}${cfg.endMode === 'laps' ? '/' + cfg.laps : ''}</span><span class="cn">$${q.coins}</span></div>`).join('')}</div>`;
+  h += `<div class="score">${G.players.map((q, i) => `<div class="srow${i === G.cur ? ' me' : ''}">${pawn(q.color)}<span class="nm">${esc(q.name)}</span><span class="lp">${tz('lapShort')} ${q.laps}${cfg.endMode === 'laps' ? '/' + cfg.laps : ''}</span><span class="cn">$${q.coins}</span></div>`).join('')}</div>`;
   el.innerHTML = h;
   el.querySelectorAll('img').forEach(img => img.addEventListener('error', () => imgFail(img)));
 }
@@ -574,7 +598,7 @@ function award(v){
   const p = curP(); let gain = v;
   if (G.lapGained){
     p.laps++;
-    if (cfg.goOn && cfg.goAmount > 0){ gain += cfg.goAmount; toast(tx('goPass', { n: '$' + cfg.goAmount })); }
+    if (cfg.goOn && cfg.goAmount > 0){ gain += cfg.goAmount; toast(txt('goPass', { n: '$' + cfg.goAmount })); }
   }
   p.coins += gain; G.lapGained = false;
   afterTurn();
@@ -583,7 +607,7 @@ function wrongMove(){
   const p = curP(); G.phase = 'moving'; G.lapGained = false; renderPanel();
   const t = setInterval(() => {
     p.pos = (p.pos - 1 + G.n) % G.n; updatePawns();
-    if (p.pos === G.from){ clearInterval(t); toast(tx('backWrong')); afterTurn(); }
+    if (p.pos === G.from){ clearInterval(t); toast(txt('backWrong')); afterTurn(); }
   }, 140);
   if (p.pos === G.from){ clearInterval(t); afterTurn(); }
 }
@@ -620,7 +644,7 @@ function settingsHTML(){
   const seg = (k, opts) => `<div class="row"><b style="min-width:84px">${tx(k === 'script' ? 'setScript' : k === 'lang' ? 'setLang' : k === 'phon' ? 'setPhon' : 'setRate')}</b><div class="chips">${opts.map(([v, label]) => `<button class="chip${Settings[k] === v ? ' on' : ''}" data-act="setS" data-k="${k}" data-v="${v}">${label}</button>`).join('')}</div></div>`;
   return `<h3>⚙️ ${tx('settings')}</h3>
     ${seg('script', [['trad', tx('trad')], ['simp', tx('simp')]])}
-    ${seg('lang', [['es', 'Español'], ['en', 'English'], ['zh', '中文']])}
+    ${seg('lang', [['es', '中文＋Español'], ['en', '中文＋English'], ['zh', Settings.script === 'simp' ? '纯中文' : '純中文']])}
     ${seg('phon', [['pinyin', tx('pinyin')], ['zhuyin', tx('zhuyin')], ['both', tx('both')], ['off', tx('off')]])}
     ${seg('rate', [['slow', tx('slow')], ['normal', tx('normal')], ['fast', tx('fast')]])}
     <div class="btns"><button class="btn" data-act="closeModal">${tx('close')}</button></div>`;
