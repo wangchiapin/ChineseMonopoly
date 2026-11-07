@@ -247,7 +247,7 @@ with sync_playwright() as p:
     def setS(k, v): pg.click('[data-act=setS][data-k=%s][data-v=%s]' % (k, v)); pg.wait_for_timeout(120)
     def saved(): return json.loads(pg.evaluate("localStorage.getItem('hanziGames.settings')"))
     setS('script', 'simp'); R.check(saved()['script'] == 'simp' and pg.inner_text('.deed .hz') == word_t['zhs'], '簡體：存檔、畫面換成簡體字')
-    R.check('设置' in pg.inner_text('.modal'), '  介面文字變簡體')
+    R.check('设定' in pg.inner_text('.modal'), '  介面文字變簡體')
     setS('script', 'trad'); R.check(saved()['script'] == 'trad' and pg.inner_text('.deed .hz') == word_t['zh'], '繁體：切回來')
     for ph in ('pinyin', 'zhuyin', 'both', 'off'):
         setS('phon', ph); want = {'pinyin': 1, 'zhuyin': 1, 'both': 2, 'off': 0}[ph]
@@ -281,7 +281,7 @@ with sync_playwright() as p:
     lang_to('zh'); tt = ui_text()
     R.check('輪到' in tt and '設定' in tt and 'Turno' not in tt and 'Settings' not in tt and 'turn' not in tt, '純中文：只有中文')
     pg.click('[data-act=settings] >> nth=0'); pg.click('[data-act=setS][data-k=script][data-v=simp]'); pg.click('[data-act=closeModal]')
-    R.check('轮到' in ui_text() and '设置' in ui_text(), '純中文＋簡體：簡體介面')
+    R.check('轮到' in ui_text() and '设定' in ui_text(), '純中文＋簡體：簡體介面')
     pg.click('[data-act=settings] >> nth=0'); pg.click('[data-act=setS][data-k=script][data-v=trad]'); pg.click('[data-act=closeModal]')
     lang_to('es')
     pg.click('[data-act=wrong]'); wait_ready(pg)
